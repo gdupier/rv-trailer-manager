@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1b4332">
+<meta name="description" content="Offline trip checklists for your RV trailer.">
+<title>RV Trailer Manager</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RV Manager">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header id="appHeader">
+  <div class="header-inner">
+    <span class="logo">🚐</span>
+    <div class="header-text">
+      <h1>RV Trailer Manager</h1>
+      <p id="headerSub">No active trip</p>
+    </div>
+  </div>
+</header>
+
+<main id="view"><!-- rendered by app.js --></main>
+
+<nav id="tabbar">
+  <button class="tab" data-tab="trip">    <span class="ico">🧭</span><span>Trip</span></button>
+  <button class="tab" data-tab="lists">   <span class="ico">📝</span><span>Lists</span></button>
+  <button class="tab" data-tab="history"> <span class="ico">🕘</span><span>History</span></button>
+  <button class="tab" data-tab="data">    <span class="ico">⚙️</span><span>Data</span></button>
+</nav>
+
+<input type="file" id="importFile" accept="application/json" hidden>
+
+<script src="app.js"></script>
+</body>
+</html>
