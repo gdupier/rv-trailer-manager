@@ -260,11 +260,11 @@ These ship as the editable defaults.
 
 **🔒 Drop at Storage**
 - Back trailer into parking spot
+- Set wheel chocks
 - Add holding-tank treatment / antifreeze
 - Defrost & prop fridge door open
 - Disconnect battery (or trickle charge)
 - Confirm propane tank closed
-- Set chocks & lower stabilizers
 - Lock all doors & storage bays
 - Record mileage & maintenance notes
 
