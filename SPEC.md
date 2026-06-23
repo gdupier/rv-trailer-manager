@@ -227,7 +227,7 @@ These ship as the editable defaults.
 - Raise stabilizer jacks
 - Hitch to tow vehicle & lock coupler
 - Attach safety chains & breakaway
-- Plug in & test all lights
+- Plug in 9-pin connector & test all lights
 - Remove wheel chocks
 - Final walk-around — leave nothing behind
 
