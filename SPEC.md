@@ -236,15 +236,26 @@ These ship as the editable defaults.
 - Remove wheel chocks
 - Final walk-around — leave nothing behind
 
-**🏠 Unload at Home**
-- Remove perishable food & clean fridge
-- Remove trash
-- Take out dirty laundry & bedding
-- Empty & clean cooler
+**🏠 Unload at Home** (mirrors the Loading list — each pack/load reversed)
+- Empty fridges & power off, clean
+- Remove pantry & dry goods
+- Unpack clothing & bedding
+- Unpack toiletries & first-aid kit
 - Unload camp chairs & outdoor gear
-- Bring tools back to garage
+- Unload water hose & pressure regulator
+- Unload sewer hose & disposable gloves
+- Unload power cord and surge protector
+- Unload leveling blocks & wheel chocks
+- Unload tools, gloves & duct tape
+- Unload firewood / grill propane
+- Remove trash
+- Unload dog food and bowls
+- Unload dog bed
+- Unload Coleman Grill
+- Unload TV
+- Unload paper towels
+- Unload toilet paper
 - Sweep & wipe down interior
-- Charge batteries / devices
 - Note anything that ran low for next trip
 
 **🔒 Drop at Storage**
