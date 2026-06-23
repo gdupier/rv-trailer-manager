@@ -260,7 +260,6 @@ These ship as the editable defaults.
 
 **🔒 Drop at Storage**
 - Add holding-tank treatment / antifreeze
-- Remove all food from interior
 - Defrost & prop fridge door open
 - Disconnect battery (or trickle charge)
 - Close all propane valves

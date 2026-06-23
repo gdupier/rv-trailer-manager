@@ -113,7 +113,6 @@ const DEFAULT_LISTS = [
   ]},
   { id: 'storage', emoji: '🔒', name: 'Drop at Storage', sub: 'Long-term storage / winterizing', items: [
     'Add holding-tank treatment / antifreeze',
-    'Remove all food from interior',
     'Defrost & prop fridge door open',
     'Disconnect battery (or trickle charge)',
     'Close all propane valves',
