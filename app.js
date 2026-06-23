@@ -42,6 +42,7 @@ const DEFAULT_LISTS = [
     'Load firewood / grill propane',
     'Pack trash bags',
     'Pack dog food and bowls',
+    'Load dog bed',
     'Pack Coleman Grill',
     'Pack TV',
     'Pack paper towels',
