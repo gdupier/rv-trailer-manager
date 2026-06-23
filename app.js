@@ -60,6 +60,7 @@ const DEFAULT_LISTS = [
     'Connect & secure sewer hose',
     'Open propane valve',
     'Turn on water heater & fridge',
+    'Setup outdoor mat and chairs',
     'Deploy awning',
     'Check all systems working',
   ]},
