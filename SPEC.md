@@ -215,6 +215,7 @@ These ship as the editable defaults.
 - Deploy awning
 - Load fridges with food
 - Add sanitizing tablet to toilet
+- Setup trash bags
 - Check all systems working
 
 **🛻 Depart Campsite**
