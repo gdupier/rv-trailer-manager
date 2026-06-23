@@ -112,7 +112,6 @@ const DEFAULT_LISTS = [
     'Note anything that ran low for next trip',
   ]},
   { id: 'storage', emoji: '🔒', name: 'Drop at Storage', sub: 'Long-term storage / winterizing', items: [
-    'Dump & flush black and gray tanks',
     'Add holding-tank treatment / antifreeze',
     'Drain fresh water tank & water heater',
     'Remove all food from interior',

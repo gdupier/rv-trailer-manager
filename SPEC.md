@@ -259,7 +259,6 @@ These ship as the editable defaults.
 - Note anything that ran low for next trip
 
 **🔒 Drop at Storage**
-- Dump & flush black and gray tanks
 - Add holding-tank treatment / antifreeze
 - Drain fresh water tank & water heater
 - Remove all food from interior
