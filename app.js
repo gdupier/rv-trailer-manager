@@ -14,6 +14,7 @@ const DEFAULT_LISTS = [
     'Walk around — check exterior for damage',
     'Inspect tires: pressure & tread (incl. spare)',
     'Inspect roof and sealant/seams',
+    'Verify tank valves are closed',
     'Connect / verify battery is charged',
     'Check propane tank levels & valves closed',
     'Install anti-sway bars',
