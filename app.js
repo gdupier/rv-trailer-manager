@@ -118,7 +118,7 @@ const DEFAULT_LISTS = [
     'Defrost & prop fridge door open',
     'Disconnect battery (or trickle charge)',
     'Confirm propane tank closed',
-    'Disconnect trailer safety chains and emergency disconnect',
+    'Disconnect trailer safety chains, 7-pin electrical cord, and emergency disconnect',
     'Block and raise trailer hitch',
     'Disconnect sway bars',
     'Disconnect ball hitch',
