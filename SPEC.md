@@ -262,7 +262,7 @@ These ship as the editable defaults.
 - Add holding-tank treatment / antifreeze
 - Defrost & prop fridge door open
 - Disconnect battery (or trickle charge)
-- Close all propane valves
+- Confirm propane tank closed
 - Retract slide-outs & awning
 - Install roof vent covers
 - Set chocks & lower stabilizers
