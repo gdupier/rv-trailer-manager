@@ -198,8 +198,8 @@ These ship as the editable defaults.
 
 **🏕️ Arrive at Campsite**
 - Position trailer on the pad
-- Chock the wheels
 - Level side-to-side with blocks
+- Chock the wheels
 - Unhitch from tow vehicle
 - Level front-to-back with tongue jack
 - Lower stabilizer jacks
