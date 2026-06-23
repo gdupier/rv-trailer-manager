@@ -198,6 +198,7 @@ These ship as the editable defaults.
 - *(+ packing inventory by category — see §5.3)*
 
 **🏕️ Arrive at Campsite**
+- Check in
 - Drink thinking juice
 - Position trailer on the pad
 - Level side-to-side with blocks
