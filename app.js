@@ -59,7 +59,6 @@ const DEFAULT_LISTS = [
     'Connect water w/ pressure regulator',
     'Connect & secure sewer hose',
     'Open propane valve',
-    'Extend slide-outs',
     'Turn on water heater & fridge',
     'Deploy awning',
     'Check all systems working',
