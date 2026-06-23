@@ -176,7 +176,6 @@ These ship as the editable defaults.
 **🏪 Pickup from Storage**
 - Walk around — check exterior for damage
 - Inspect tires: pressure & tread (incl. spare)
-- Check & torque lug nuts
 - Inspect roof and sealant/seams
 - Connect / verify battery is charged
 - Check propane tank levels & valves closed
