@@ -49,6 +49,7 @@ const DEFAULT_LISTS = [
     'Secure loose items & latch cabinets',
   ]},
   { id: 'arrive', emoji: '🏕️', name: 'Arrive at Campsite', sub: 'Setting up on site', items: [
+    'Drink thinking juice',
     'Position trailer on the pad',
     'Level side-to-side with blocks',
     'Chock the wheels',
