@@ -210,7 +210,7 @@ These ship as the editable defaults.
 - Connect water w/ pressure regulator
 - Connect & secure sewer hose
 - Open propane valve
-- Turn on water heater & fridge
+- Turn on water heater
 - Setup outdoor mat and chairs
 - Deploy awning
 - Check all systems working
