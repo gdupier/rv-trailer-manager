@@ -35,6 +35,7 @@ const DEFAULT_LISTS = [
     'Load camp chairs & outdoor gear',
     'Pack water hose & pressure regulator',
     'Pack sewer hose & disposable gloves',
+    'Pack power cord and surge protector',
     'Load leveling blocks & wheel chocks',
     'Load tools, gloves & duct tape',
     'Load firewood / grill propane',
