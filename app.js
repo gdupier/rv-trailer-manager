@@ -116,7 +116,6 @@ const DEFAULT_LISTS = [
     'Defrost & prop fridge door open',
     'Disconnect battery (or trickle charge)',
     'Confirm propane tank closed',
-    'Install roof vent covers',
     'Set chocks & lower stabilizers',
     'Cover trailer (if applicable)',
     'Lock all doors & storage bays',
