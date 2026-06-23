@@ -259,6 +259,7 @@ These ship as the editable defaults.
 - Note anything that ran low for next trip
 
 **🔒 Drop at Storage**
+- Back trailer into parking spot
 - Add holding-tank treatment / antifreeze
 - Defrost & prop fridge door open
 - Disconnect battery (or trickle charge)

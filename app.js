@@ -112,6 +112,7 @@ const DEFAULT_LISTS = [
     'Note anything that ran low for next trip',
   ]},
   { id: 'storage', emoji: '🔒', name: 'Drop at Storage', sub: 'Long-term storage / winterizing', items: [
+    'Back trailer into parking spot',
     'Add holding-tank treatment / antifreeze',
     'Defrost & prop fridge door open',
     'Disconnect battery (or trickle charge)',
