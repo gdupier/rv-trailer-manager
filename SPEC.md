@@ -191,7 +191,6 @@ These ship as the editable defaults.
 - Remove wheel chocks
 
 **📦 Loading** (procedural steps; packing inventory items appear here too)
-- Load fresh water (if filling at home)
 - Power fridge on / pre-cool
 - Balance load — check tongue weight
 - Secure loose items & latch cabinets

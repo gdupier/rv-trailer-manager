@@ -28,7 +28,6 @@ const DEFAULT_LISTS = [
     'Remove wheel chocks',
   ]},
   { id: 'loading', emoji: '📦', name: 'Loading', sub: 'Stock and pack before you leave home', items: [
-    'Load fresh water (if filling at home)',
     'Power fridge on / pre-cool',
     'Stock pantry & dry goods',
     'Pack clothing & bedding',
