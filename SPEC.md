@@ -264,7 +264,6 @@ These ship as the editable defaults.
 - Disconnect battery (or trickle charge)
 - Confirm propane tank closed
 - Set chocks & lower stabilizers
-- Cover trailer (if applicable)
 - Lock all doors & storage bays
 - Record mileage & maintenance notes
 
