@@ -263,7 +263,6 @@ These ship as the editable defaults.
 - Defrost & prop fridge door open
 - Disconnect battery (or trickle charge)
 - Confirm propane tank closed
-- Retract slide-outs & awning
 - Install roof vent covers
 - Set chocks & lower stabilizers
 - Cover trailer (if applicable)
