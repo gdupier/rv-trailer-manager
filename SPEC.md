@@ -225,7 +225,9 @@ These ship as the editable defaults.
 - Disconnect shore power
 - Close propane valves
 - Raise stabilizer jacks
-- Hitch to tow vehicle & lock coupler
+- Install sway bars
+- Connect ball coupling
+- Attach sway bars to trailer
 - Attach safety chains & breakaway
 - Plug in 7-pin connector & test all lights
 - Remove wheel chocks
