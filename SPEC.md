@@ -213,6 +213,8 @@ These ship as the editable defaults.
 - Turn on water heater
 - Setup outdoor mat and chairs
 - Deploy awning
+- Load fridges with food
+- Add sanitizing tablet to toilet
 - Check all systems working
 
 **🛻 Depart Campsite**

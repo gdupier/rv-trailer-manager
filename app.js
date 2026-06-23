@@ -66,6 +66,8 @@ const DEFAULT_LISTS = [
     'Turn on water heater',
     'Setup outdoor mat and chairs',
     'Deploy awning',
+    'Load fridges with food',
+    'Add sanitizing tablet to toilet',
     'Check all systems working',
   ]},
   { id: 'depart', emoji: '🛻', name: 'Depart Campsite', sub: 'Breaking camp and hitching up', items: [
