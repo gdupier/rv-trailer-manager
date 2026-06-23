@@ -217,7 +217,6 @@ These ship as the editable defaults.
 
 **🛻 Depart Campsite**
 - Bring in & secure awning
-- Retract slide-outs
 - Close roof vents & windows
 - Secure interior — latch cabinets & fridge
 - Empty black tank, then gray tank

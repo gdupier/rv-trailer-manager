@@ -70,7 +70,6 @@ const DEFAULT_LISTS = [
   ]},
   { id: 'depart', emoji: '🛻', name: 'Depart Campsite', sub: 'Breaking camp and hitching up', items: [
     'Bring in & secure awning',
-    'Retract slide-outs',
     'Close roof vents & windows',
     'Secure interior — latch cabinets & fridge',
     'Empty black tank, then gray tank',
