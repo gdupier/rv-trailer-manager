@@ -100,7 +100,6 @@ const DEFAULT_LISTS = [
     'Unload power cord and surge protector',
     'Unload leveling blocks & wheel chocks',
     'Unload tools, gloves & duct tape',
-    'Bring tools back to garage',
     'Unload firewood / grill propane',
     'Remove trash',
     'Unload dog food and bowls',
