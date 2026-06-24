@@ -13,6 +13,7 @@ const DEFAULT_LISTS = [
   { id: 'pickup', emoji: '🏪', name: 'Pickup from Storage', sub: 'Pre-trip inspection before towing home', items: [
     'Locate all keys',
     'Walk around — check exterior for damage',
+    'Remove ball hitch lock',
     'Inspect tires: pressure & tread (incl. spare)',
     'Inspect roof and sealant/seams',
     'Verify tank valves are closed',

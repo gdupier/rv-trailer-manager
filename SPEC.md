@@ -176,6 +176,7 @@ These ship as the editable defaults.
 **🏪 Pickup from Storage**
 - Locate all keys
 - Walk around — check exterior for damage
+- Remove ball hitch lock
 - Inspect tires: pressure & tread (incl. spare)
 - Inspect roof and sealant/seams
 - Verify tank valves are closed
