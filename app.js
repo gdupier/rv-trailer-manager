@@ -11,6 +11,7 @@ const SCHEMA = 1;
 /* ---------- Default (built-in) checklists ---------- */
 const DEFAULT_LISTS = [
   { id: 'pickup', emoji: '🏪', name: 'Pickup from Storage', sub: 'Pre-trip inspection before towing home', items: [
+    'Locate all keys',
     'Walk around — check exterior for damage',
     'Inspect tires: pressure & tread (incl. spare)',
     'Inspect roof and sealant/seams',

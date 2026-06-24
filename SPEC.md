@@ -174,6 +174,7 @@ a static reference, not connected to other features.
 These ship as the editable defaults.
 
 **🏪 Pickup from Storage**
+- Locate all keys
 - Walk around — check exterior for damage
 - Inspect tires: pressure & tread (incl. spare)
 - Inspect roof and sealant/seams
