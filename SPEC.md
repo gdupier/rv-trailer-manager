@@ -95,14 +95,22 @@ A bottom tab bar (thumb-reachable) with five destinations:
 - Editing changes the *template*; the active trip's checkmarks track which template
   items are done. (Edge cases to handle: item deleted/added mid-trip — see §8.)
 
-### 5.3 Packing inventory (feeds Loading)
-- A **master inventory** of gear you own, grouped by **category**
-  (e.g. Kitchen, Bedding, Tools, Outdoor, Safety), each item with an optional **quantity**.
-- On the **Loading** checklist, the inventory appears as checkable packing items
-  grouped by category, alongside the procedural loading steps (balance load, secure
-  cabinets, etc.).
-- Editing the master inventory updates what shows up in Loading. Per-trip you check
-  off what's actually packed; the master list itself isn't "checked," it's your catalog.
+### 5.3 Packing inventory ✅ **(Phase 2 — shipped)**
+> Implementation note: during Phase 2 planning the owner opted to keep the Loading
+> checklist exactly as-is (it already contains hand-added "Pack X" items) and add a
+> **separate, independent Packing inventory** rather than have Loading consume it. The
+> two are intentionally decoupled.
+
+- A **master inventory** of gear you own, grouped by **category** (Kitchen, Bedding,
+  Tools & leveling, Hookups, Outdoor, Safety & personal), each item with a **quantity**.
+- Edited on its own **Packing tab** (5th bottom-tab) — add/rename/delete categories and
+  items, set quantities. This is the catalog and isn't itself "checked."
+- **Tied to the trip like a checklist:** during an active trip a **🎒 Packing tile**
+  appears on the Trip screen; tapping it opens a check-off view grouped by category
+  (quantities shown as `×N`). Packed state resets on **Start Trip**, counts toward the
+  trip's overall progress, and is archived into **Trip History** on finish.
+- Defaults seeded on first run / reset; existing saved data is migrated to add the
+  inventory (schema v2).
 
 ### 5.4 Maintenance & service log
 - A simple chronological **log**. Each entry: **date**, **task/description**,
@@ -359,8 +367,10 @@ enable Pages on `main` root — mirroring the tic-tac-toe deploy workflow (every
 - PWA manifest + service worker (installable, offline)
 - Outdoorsy theme, bottom tab nav
 
-**Phase 2 — Packing inventory**
-- Master inventory by category; Loading list consumes it
+**Phase 2 — Packing inventory** ✅ **shipped**
+- Master inventory by category with quantities, edited on its own Packing tab
+- Decoupled from Loading (kept separate per owner's choice); tied to the trip and
+  archived to history; schema v2 migration for existing data
 
 **Phase 3 — Maintenance log + Rig profile**
 - Simple service log entries

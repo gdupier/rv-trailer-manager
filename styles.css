@@ -144,6 +144,15 @@ li.item.checked .item-label { text-decoration: line-through; color: var(--muted)
 /* ---------- Add row ---------- */
 .add-row { display: flex; gap: 8px; margin: 12px 0; }
 .add-row input { flex: 1; }
+.add-row .qty-input { flex: 0 0 auto; }
+
+/* ---------- Quantities ---------- */
+.qty { font-size: .78rem; font-weight: 700; color: var(--accent-dark); margin-left: 2px; }
+li.item.checked .qty { color: var(--muted); }
+.qty-input {
+  width: 56px; text-align: center; padding: 8px 6px; border: 1px solid var(--line);
+  border-radius: 8px; font: inherit; background: var(--card);
+}
 
 /* ---------- Empty state ---------- */
 .empty { text-align: center; color: var(--muted); padding: 40px 16px; }
@@ -179,6 +188,7 @@ li.item.checked .item-label { text-decoration: line-through; color: var(--muted)
   font-size: .68rem; font-weight: 600; padding: 6px 0;
 }
 .tab .ico { font-size: 21px; line-height: 1; filter: grayscale(.4); opacity: .7; }
+@media (max-width: 400px) { .tab { font-size: .62rem; } .tab .ico { font-size: 19px; } }
 .tab.active { color: var(--green-mid); }
 .tab.active .ico { filter: none; opacity: 1; }
 

@@ -1,12 +1,13 @@
 'use strict';
 
 /* ============================================================
-   RV Trailer Manager — Phase 1
-   Offline-first checklists + trip flow. All state in localStorage.
+   RV Trailer Manager — Phase 2
+   Offline-first checklists + trip flow + packing inventory.
+   All state in localStorage.
    ============================================================ */
 
 const STORAGE_KEY = 'rvManager_v1';
-const SCHEMA = 1;
+const SCHEMA = 2;
 
 /* ---------- Default (built-in) checklists ---------- */
 const DEFAULT_LISTS = [
@@ -135,6 +136,60 @@ const DEFAULT_LISTS = [
 ];
 const DEFAULT_BY_ID = Object.fromEntries(DEFAULT_LISTS.map(l => [l.id, l]));
 
+/* ---------- Default packing inventory (categories → gear) ---------- */
+const DEFAULT_INVENTORY = [
+  { name: 'Kitchen', items: [
+    { name: 'Pots & pans', qty: 1 },
+    { name: 'Utensils & cookware', qty: 1 },
+    { name: 'Plates, bowls & cups', qty: 1 },
+    { name: 'Dish soap & sponge', qty: 1 },
+    { name: 'Coffee maker', qty: 1 },
+  ]},
+  { name: 'Bedding', items: [
+    { name: 'Sheets', qty: 1 },
+    { name: 'Pillows', qty: 4 },
+    { name: 'Blankets', qty: 2 },
+    { name: 'Bath towels', qty: 4 },
+  ]},
+  { name: 'Tools & leveling', items: [
+    { name: 'Leveling blocks', qty: 1 },
+    { name: 'Wheel chocks', qty: 2 },
+    { name: 'Tool kit', qty: 1 },
+    { name: 'Work gloves', qty: 1 },
+    { name: 'Duct tape', qty: 1 },
+  ]},
+  { name: 'Hookups', items: [
+    { name: 'Fresh water hose', qty: 1 },
+    { name: 'Pressure regulator', qty: 1 },
+    { name: 'Sewer hose', qty: 1 },
+    { name: 'Disposable gloves', qty: 1 },
+    { name: 'Surge protector', qty: 1 },
+    { name: 'Power cord', qty: 1 },
+  ]},
+  { name: 'Outdoor', items: [
+    { name: 'Camp chairs', qty: 4 },
+    { name: 'Outdoor mat / rug', qty: 1 },
+    { name: 'Lantern', qty: 1 },
+    { name: 'Firewood', qty: 1 },
+    { name: 'Grill propane', qty: 1 },
+  ]},
+  { name: 'Safety & personal', items: [
+    { name: 'First-aid kit', qty: 1 },
+    { name: 'Toiletries', qty: 1 },
+    { name: 'Flashlight', qty: 2 },
+    { name: 'Bug spray', qty: 1 },
+    { name: 'Sunscreen', qty: 1 },
+  ]},
+];
+function seedInventory() {
+  return {
+    categories: DEFAULT_INVENTORY.map(c => ({
+      id: uid('c_'), name: c.name,
+      items: c.items.map(it => ({ id: uid('p_'), name: it.name, qty: it.qty })),
+    })),
+  };
+}
+
 /* ---------- Utilities ---------- */
 let _idc = 0;
 function uid(prefix) {
@@ -166,12 +221,20 @@ function seedState() {
       items: l.items.map(t => ({ id: uid('i_'), text: t })),
     };
   }
-  return { schemaVersion: SCHEMA, checklists: { order, defs }, currentTrip: null, history: [] };
+  return { schemaVersion: SCHEMA, checklists: { order, defs }, inventory: seedInventory(), currentTrip: null, history: [] };
+}
+// Bring older saved state up to the current schema (adds new fields in place).
+function migrate(raw) {
+  if (!raw.inventory || !Array.isArray(raw.inventory.categories)) raw.inventory = seedInventory();
+  if (raw.currentTrip && !raw.currentTrip.packed) raw.currentTrip.packed = {};
+  if (!raw.history) raw.history = [];
+  raw.schemaVersion = SCHEMA;
+  return raw;
 }
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (raw && raw.schemaVersion && raw.checklists && raw.checklists.defs) return raw;
+    if (raw && raw.schemaVersion && raw.checklists && raw.checklists.defs) return migrate(raw);
   } catch (e) { /* fall through */ }
   return seedState();
 }
@@ -193,7 +256,24 @@ function listProgress(id) {
 function overallProgress() {
   let done = 0, total = 0;
   for (const l of lists()) { for (const it of l.items) { total++; if (isChecked(it.id)) done++; } }
+  for (const it of inventoryItems()) { total++; if (isPacked(it.id)) done++; }
   return { done, total, pct: total ? Math.round((done / total) * 100) : 0 };
+}
+
+/* ---------- Packing inventory helpers ---------- */
+function categories() { return state.inventory.categories; }
+function inventoryItems() { return categories().flatMap(c => c.items); }
+function isPacked(itemId) { return !!(state.currentTrip && state.currentTrip.packed && state.currentTrip.packed[itemId]); }
+function packingProgress() {
+  const items = inventoryItems();
+  const total = items.length;
+  const done = items.filter(i => isPacked(i.id)).length;
+  return { done, total, pct: total ? Math.round((done / total) * 100) : 0 };
+}
+function findCategory(id) { return categories().find(c => c.id === id); }
+function findInvItem(id) {
+  for (const c of categories()) { const it = c.items.find(x => x.id === id); if (it) return { item: it, cat: c }; }
+  return null;
 }
 
 /* ============================================================
@@ -210,8 +290,9 @@ function render() {
     t.classList.toggle('active', t.dataset.tab === view.tab));
 
   let html = '';
-  if (view.tab === 'trip')         html = view.sub === 'list' ? renderTripList(view.id) : renderTripHome();
+  if (view.tab === 'trip')         html = view.sub === 'list' ? renderTripList(view.id) : view.sub === 'packing' ? renderTripPacking() : renderTripHome();
   else if (view.tab === 'lists')   html = view.sub === 'edit' ? renderEditList(view.id) : renderLists();
+  else if (view.tab === 'packing') html = renderPackingEditor();
   else if (view.tab === 'history') html = view.sub === 'view' ? renderHistoryDetail(view.id) : renderHistory();
   else if (view.tab === 'data')    html = renderData();
 
@@ -238,6 +319,11 @@ function renderTripHome() {
           <span class="name">${esc(l.name)}</span>
           <span class="count">${l.items.length} items</span>
         </div>`).join('')}
+        <div class="tile">
+          <span class="emoji">🎒</span>
+          <span class="name">Packing</span>
+          <span class="count">${inventoryItems().length} items</span>
+        </div>
       </div>
       <p class="muted center" style="font-size:.8rem;margin-top:14px">Start a trip to begin checking things off.</p>`;
   }
@@ -256,6 +342,15 @@ function renderTripHome() {
       </button>`;
   }).join('');
 
+  const pk = packingProgress();
+  const pkTile = `
+      <button class="tile ${pk.total && pk.done === pk.total ? 'complete' : ''}" data-action="open-packing">
+        <span class="emoji">🎒</span>
+        <span class="name">Packing</span>
+        <span class="count">${pk.done} / ${pk.total} packed</span>
+        <span class="bar"><span style="width:${pk.pct}%"></span></span>
+      </button>`;
+
   return `
     <div class="trip-banner">
       <h2>${esc(t.name)}</h2>
@@ -263,7 +358,7 @@ function renderTripHome() {
       <div class="bar"><span style="width:${o.pct}%"></span></div>
       <div class="pctline"><span>${o.done} of ${o.total} done</span><span>${o.pct}%</span></div>
     </div>
-    <div class="grid">${tiles}</div>
+    <div class="grid">${tiles}${pkTile}</div>
     <div class="stack" style="margin-top:18px">
       <button class="btn btn-accent btn-block" data-action="finish-trip">🏁 Finish Trip &amp; Save to History</button>
       <button class="btn btn-danger btn-block" data-action="cancel-trip">Discard this trip</button>
@@ -297,6 +392,41 @@ function renderTripList(id) {
       <button class="btn btn-ghost btn-sm" data-action="uncheck-list" data-id="${id}">Uncheck all</button>
       <div class="spacer"></div>
       <button class="btn btn-ghost btn-sm" data-action="goto-edit" data-id="${id}">✏️ Edit items</button>
+    </div>`;
+}
+
+/* ---------- TRIP: packing check-off (grouped by category) ---------- */
+function renderTripPacking() {
+  const p = packingProgress();
+  const groups = categories().map(c => {
+    if (!c.items.length) return '';
+    const done = c.items.filter(i => isPacked(i.id)).length;
+    const rows = c.items.map(it => {
+      const on = isPacked(it.id);
+      return `
+        <li class="item ${on ? 'checked' : ''}">
+          <div class="check ${on ? 'on' : ''}" role="checkbox" aria-checked="${on}" data-action="toggle-packed" data-id="${it.id}"></div>
+          <span class="item-label" data-action="toggle-packed" data-id="${it.id}">${esc(it.name)}${it.qty > 1 ? ` <span class="qty">×${it.qty}</span>` : ''}</span>
+        </li>`;
+    }).join('');
+    return `
+      <div class="section-label" style="margin-top:16px">${esc(c.name)} — ${done}/${c.items.length}</div>
+      <ul class="items">${rows}</ul>`;
+  }).join('');
+
+  return `
+    <button class="back" data-action="back-trip">← Trip</button>
+    <div class="detail-head"><span class="emoji">🎒</span><h2>Packing</h2></div>
+    <p class="detail-sub">Check off gear as you load it</p>
+    <div class="progress-row" style="margin-bottom:8px">
+      <div class="bar"><span style="width:${p.pct}%"></span></div>
+      <div class="pct">${p.pct}%</div>
+    </div>
+    ${groups || '<div class="empty"><div class="big">🎒</div><p>No gear yet.<br>Add items in the Packing tab.</p></div>'}
+    <div class="row" style="margin-top:14px">
+      <button class="btn btn-ghost btn-sm" data-action="uncheck-packing">Uncheck all</button>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost btn-sm" data-action="goto-packing">✏️ Edit inventory</button>
     </div>`;
 }
 
@@ -364,6 +494,43 @@ function renderEditList(id) {
     </div>`;
 }
 
+/* ---------- PACKING (edit master inventory) ---------- */
+function renderPackingEditor() {
+  const cats = categories().map(c => {
+    const items = c.items.map(it => `
+      <li class="item">
+        <input type="text" class="item-label" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px"
+               value="${esc(it.name)}" data-action="rename-inv-item" data-id="${it.id}" aria-label="item name">
+        <input type="number" class="qty-input" min="1" inputmode="numeric"
+               value="${it.qty}" data-action="set-inv-qty" data-id="${it.id}" aria-label="quantity">
+        <button class="iconbtn danger" data-action="del-inv-item" data-id="${it.id}" aria-label="Delete">✕</button>
+      </li>`).join('');
+    return `
+      <div class="card" style="margin-bottom:14px">
+        <div class="row" style="gap:8px;margin-bottom:8px">
+          <input type="text" style="flex:1;font-weight:650" value="${esc(c.name)}" data-action="rename-category" data-id="${c.id}" aria-label="category name">
+          <button class="iconbtn danger" data-action="del-category" data-id="${c.id}" aria-label="Delete category">🗑</button>
+        </div>
+        <ul class="items">${items || '<li class="muted" style="padding:4px 2px">No items yet.</li>'}</ul>
+        <div class="add-row" style="margin-bottom:0">
+          <input type="text" id="newInv_${c.id}" placeholder="Add gear…" autocomplete="off">
+          <input type="number" id="newQty_${c.id}" class="qty-input" min="1" value="1" inputmode="numeric" aria-label="quantity">
+          <button class="btn btn-primary btn-sm" data-action="add-inv-item" data-id="${c.id}">Add</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="section-label">Packing inventory</div>
+    <p class="muted" style="margin:0 4px 14px;font-size:.85rem">Your master gear list. Organize by category and set quantities. During a trip you check items off on the Packing tile.</p>
+    ${cats || '<p class="muted center">No categories yet — add one below.</p>'}
+    <div class="section-label" style="margin-top:18px">Add a category</div>
+    <div class="card row" style="gap:8px">
+      <input type="text" id="newCatName" placeholder="Category name" autocomplete="off">
+      <button class="btn btn-primary btn-sm" data-action="add-category">Add</button>
+    </div>`;
+}
+
 /* ---------- HISTORY ---------- */
 function renderHistory() {
   if (!state.history.length) {
@@ -400,12 +567,25 @@ function renderHistoryDetail(id) {
       <ul class="items">${items}</ul>`;
   }).join('');
 
+  const packing = (tr.packing || []).map(c => {
+    const done = c.items.filter(i => i.done).length;
+    const items = c.items.map(i => `
+      <li class="item ${i.done ? 'checked' : ''}">
+        <div class="check ${i.done ? 'on' : ''}"></div>
+        <span class="item-label">${esc(i.name)}${i.qty > 1 ? ` <span class="qty">×${i.qty}</span>` : ''}</span>
+      </li>`).join('');
+    return `
+      <div class="section-label" style="margin-top:18px">🎒 ${esc(c.name)} — ${done}/${c.items.length}</div>
+      <ul class="items">${items}</ul>`;
+  }).join('');
+
   return `
     <button class="back" data-action="back-history">← History</button>
     <div class="detail-head"><span class="emoji">🧭</span><h2>${esc(tr.name)}</h2></div>
     <p class="detail-sub">${tr.place ? esc(tr.place) + ' · ' : ''}${fmtDate(tr.startDate)}${tr.endDate ? ' → ' + fmtDate(tr.endDate) : ''}</p>
     ${tr.notes ? `<div class="card" style="margin-bottom:6px"><strong>Notes:</strong> ${esc(tr.notes)}</div>` : ''}
     ${lists}
+    ${packing}
     <div class="row" style="margin-top:18px">
       <button class="btn btn-danger btn-sm" data-action="delete-history" data-id="${tr.id}">🗑 Delete this trip</button>
     </div>`;
@@ -425,7 +605,7 @@ function renderData() {
       <p class="muted" style="margin:0">Restore all six checklists to defaults and erase trips &amp; history. This cannot be undone.</p>
       <button class="btn btn-danger btn-block" data-action="reset-all">Reset everything to defaults</button>
     </div>
-    <p class="muted center" style="font-size:.75rem;margin-top:22px">RV Trailer Manager · Phase 1 · works offline</p>`;
+    <p class="muted center" style="font-size:.75rem;margin-top:22px">RV Trailer Manager · Phase 2 · works offline</p>`;
 }
 
 /* ============================================================
@@ -438,7 +618,7 @@ const ACTIONS = {
   'start-trip': () => {
     const name = (document.getElementById('tripName').value || '').trim() || 'Untitled trip';
     const place = (document.getElementById('tripPlace').value || '').trim();
-    state.currentTrip = { id: uid('t_'), name, place, startDate: todayISO(), checks: {} };
+    state.currentTrip = { id: uid('t_'), name, place, startDate: todayISO(), checks: {}, packed: {} };
     save(); toast('Trip started — lists reset'); go('trip');
   },
   'open-list': (id) => go('trip', 'list', id),
@@ -464,10 +644,14 @@ const ACTIONS = {
       emoji: l.emoji, name: l.name,
       items: l.items.map(it => ({ text: it.text, done: isChecked(it.id) })),
     }));
+    const packing = categories().map(c => ({
+      name: c.name,
+      items: c.items.map(it => ({ name: it.name, qty: it.qty, done: isPacked(it.id) })),
+    })).filter(c => c.items.length);
     const o = overallProgress();
     state.history.push({
       id: t.id, name: t.name, place: t.place, startDate: t.startDate, endDate: todayISO(),
-      notes: notes.trim(), snapshot, totals: { done: o.done, total: o.total },
+      notes: notes.trim(), snapshot, packing, totals: { done: o.done, total: o.total },
     });
     state.currentTrip = null;
     save(); toast('Trip saved to history 🎉'); go('history');
@@ -475,6 +659,55 @@ const ACTIONS = {
   'cancel-trip': () => {
     if (!confirm('Discard this trip without saving? Checkmarks will be lost.')) return;
     state.currentTrip = null; save(); toast('Trip discarded'); go('trip');
+  },
+
+  /* packing — trip check-off */
+  'open-packing': () => go('trip', 'packing'),
+  'goto-packing': () => go('packing'),
+  'toggle-packed': (id) => {
+    if (!state.currentTrip) return;
+    const p = state.currentTrip.packed;
+    if (p[id]) delete p[id]; else p[id] = true;
+    save(); render();
+  },
+  'uncheck-packing': () => {
+    if (!state.currentTrip) return;
+    state.currentTrip.packed = {};
+    save(); render();
+  },
+
+  /* packing — edit master inventory */
+  'add-category': () => {
+    const input = document.getElementById('newCatName');
+    const name = (input.value || '').trim();
+    if (!name) { toast('Enter a category name'); return; }
+    state.inventory.categories.push({ id: uid('c_'), name, items: [] });
+    input.value = '';
+    save(); render();
+  },
+  'del-category': (id) => {
+    const c = findCategory(id); if (!c) return;
+    if (!confirm(`Delete the "${c.name}" category and its items?`)) return;
+    if (state.currentTrip) for (const it of c.items) delete state.currentTrip.packed[it.id];
+    state.inventory.categories = categories().filter(x => x.id !== id);
+    save(); render();
+  },
+  'add-inv-item': (catId) => {
+    const c = findCategory(catId); if (!c) return;
+    const nameEl = document.getElementById('newInv_' + catId);
+    const qtyEl = document.getElementById('newQty_' + catId);
+    const name = (nameEl.value || '').trim();
+    if (!name) return;
+    const qty = Math.max(1, parseInt(qtyEl.value, 10) || 1);
+    c.items.push({ id: uid('p_'), name, qty });
+    save(); render();
+    const f = document.getElementById('newInv_' + catId); if (f) f.focus();
+  },
+  'del-inv-item': (id) => {
+    const found = findInvItem(id); if (!found) return;
+    found.cat.items = found.cat.items.filter(x => x.id !== id);
+    if (state.currentTrip) delete state.currentTrip.packed[id];
+    save(); render();
   },
 
   /* lists / editing */
@@ -551,6 +784,13 @@ const CHANGE_ACTIONS = {
   },
   'rename-list-name': (id, value) => { const l = getList(id); if (l) { l.name = value.trim() || l.name; save(); } },
   'rename-list-emoji': (id, value) => { const l = getList(id); if (l) { l.emoji = (value.trim() || l.emoji); save(); } },
+  'rename-category': (id, value) => { const c = findCategory(id); if (c) { c.name = value.trim() || c.name; save(); } },
+  'rename-inv-item': (id, value) => { const f = findInvItem(id); if (f) { f.item.name = value.trim() || f.item.name; save(); } },
+  'set-inv-qty': (id, value) => {
+    const f = findInvItem(id); if (!f) return;
+    f.item.qty = Math.max(1, parseInt(value, 10) || 1);
+    save(); render();
+  },
 };
 
 function moveItem(id, dir) {
@@ -639,6 +879,9 @@ viewEl().addEventListener('keydown', e => {
   if (t.id === 'newItemText') { const id = t.closest('main').querySelector('[data-action="add-item"]').dataset.id; ACTIONS['add-item'](id); }
   else if (t.id === 'newListName') ACTIONS['add-list']();
   else if (t.id === 'tripName' || t.id === 'tripPlace') ACTIONS['start-trip']();
+  else if (t.id === 'newCatName') ACTIONS['add-category']();
+  else if (t.id.startsWith('newInv_')) ACTIONS['add-inv-item'](t.id.slice('newInv_'.length));
+  else if (t.id.startsWith('newQty_')) ACTIONS['add-inv-item'](t.id.slice('newQty_'.length));
 });
 
 // import file

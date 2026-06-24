@@ -19,7 +19,14 @@ works with no cell signal, and installs to the home screen like a native app (PW
 - **Installable (PWA)** — "Add to Home Screen" for an app-like experience.
 - **Backup** — export/import your data as a JSON file.
 
-Planned next (see [SPEC.md](SPEC.md)): packing inventory, maintenance log, rig profile.
+## Phase 2
+
+- **Packing inventory** — a master gear list grouped by category, each item with a
+  quantity, edited on its own **Packing** tab. During a trip a 🎒 Packing tile appears
+  on the Trip screen to check off what's packed; it resets per trip, counts toward
+  overall progress, and is saved to history. Kept separate from the Loading checklist.
+
+Planned next (see [SPEC.md](SPEC.md)): maintenance log, rig profile.
 
 ## Running
 
