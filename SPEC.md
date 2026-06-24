@@ -275,6 +275,7 @@ These ship as the editable defaults.
 - Lock all doors & storage bays
 - Record mileage & maintenance notes
 - Put ball lock on trailer hitch
+- Remove anti-sway hitch from truck at home
 
 **Default packing inventory** (starter categories, editable)
 - *Kitchen:* pots/pans, utensils, dish soap, paper towels, coffee maker, trash bags

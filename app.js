@@ -128,6 +128,7 @@ const DEFAULT_LISTS = [
     'Lock all doors & storage bays',
     'Record mileage & maintenance notes',
     'Put ball lock on trailer hitch',
+    'Remove anti-sway hitch from truck at home',
   ]},
 ];
 const DEFAULT_BY_ID = Object.fromEntries(DEFAULT_LISTS.map(l => [l.id, l]));
