@@ -180,6 +180,18 @@ const DEFAULT_INVENTORY = [
     { name: 'Bug spray', qty: 1 },
     { name: 'Sunscreen', qty: 1 },
   ]},
+  { name: 'Dog Supplies', items: [
+    { name: 'Food Bowl', qty: 1 },
+    { name: 'Water Bowl', qty: 1 },
+    { name: 'Dog Food', qty: 1 },
+    { name: 'Dog Treats', qty: 1 },
+    { name: 'Leash', qty: 1 },
+    { name: 'Poop Bags', qty: 1 },
+    { name: 'Dog Toys', qty: 1 },
+    { name: 'Leader Leash', qty: 1 },
+    { name: 'Dog Bed', qty: 1 },
+    { name: 'Bark Zapper', qty: 1 },
+  ]},
 ];
 function seedInventory() {
   return {
