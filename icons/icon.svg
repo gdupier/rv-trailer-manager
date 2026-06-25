@@ -6,23 +6,15 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-  <!-- camper trailer -->
-  <g transform="translate(64 168)">
-    <!-- body -->
-    <rect x="0" y="40" width="330" height="150" rx="28" fill="#ffffff"/>
-    <!-- rounded front (aero nose) -->
-    <path d="M330 70 q54 4 54 60 q0 56 -54 60 z" fill="#ffffff"/>
-    <!-- window -->
-    <rect x="34" y="70" width="92" height="64" rx="12" fill="#40916c"/>
-    <!-- door -->
-    <rect x="150" y="70" width="64" height="120" rx="8" fill="#dfe6e1"/>
-    <circle cx="204" cy="132" r="5" fill="#2d6a4f"/>
-    <!-- accent stripe -->
-    <rect x="0" y="150" width="384" height="16" fill="#f4a261"/>
-    <!-- wheel -->
-    <circle cx="120" cy="200" r="34" fill="#1d2b25"/>
-    <circle cx="120" cy="200" r="14" fill="#6b7d74"/>
-    <!-- hitch -->
-    <path d="M0 110 l-46 28 l0 18 l46 -22 z" fill="#ffffff"/>
+  <!-- towable travel trailer (Wolf Pup style) -->
+  <g transform="translate(51,26) scale(6.4)">
+    <path d="M12 41 L3 46 L3 48 L13 43 Z" fill="#ffffff"/>
+    <path d="M8 42 Q8 22 25 21 L57 21 Q61 21 61 25 L61 42 Z" fill="#ffffff"/>
+    <path d="M14 29 Q15 24 22 24 L29 24 L29 33 L13 33 Q13 31 14 29 Z" fill="#40916c"/>
+    <rect x="8" y="37" width="53" height="3.6" fill="#1b365d"/>
+    <rect x="45" y="24" width="11" height="18" rx="2" fill="#15191c"/>
+    <circle cx="47.4" cy="33" r="1" fill="#cfd6d2"/>
+    <circle cx="34" cy="44" r="7" fill="#1d2b25"/>
+    <circle cx="34" cy="44" r="3" fill="#6b7d74"/>
   </g>
 </svg>
