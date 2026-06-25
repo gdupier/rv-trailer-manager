@@ -1,5 +1,5 @@
 /* RV Trailer Manager — service worker (offline app shell) */
-const CACHE = 'rvm-v5';
+const CACHE = 'rvm-v6';
 const ASSETS = [
   './',
   './index.html',
