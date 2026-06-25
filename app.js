@@ -1,13 +1,13 @@
 'use strict';
 
 /* ============================================================
-   RV Trailer Manager — Phase 2
-   Offline-first checklists + trip flow + packing inventory.
+   RV Trailer Manager — Phase 3a
+   Offline-first checklists + trip flow + packing inventory + rig profile.
    All state in localStorage.
    ============================================================ */
 
 const STORAGE_KEY = 'rvManager_v1';
-const SCHEMA = 2;
+const SCHEMA = 3;
 
 /* ---------- Default (built-in) checklists ---------- */
 const DEFAULT_LISTS = [
@@ -190,6 +190,44 @@ function seedInventory() {
   };
 }
 
+/* ---------- Default rig profile (2026 Forest River Cherokee Wolf Pup 16BHSW) ----------
+   Each field: { group, label, value, note? }. `note` shows a ⚠ verify reminder.
+   Values flagged with notes come from public listings and must be confirmed on the rig. */
+const DEFAULT_RIG = [
+  { group: 'Identity', label: 'Make / Model', value: 'Forest River Cherokee Wolf Pup 16BHSW' },
+  { group: 'Identity', label: 'Year', value: '2026' },
+  { group: 'Identity', label: 'Floorplan', value: 'Single-axle bunkhouse, sleeps 5' },
+  { group: 'Identity', label: 'VIN / plate', value: '' },
+
+  { group: 'Dimensions', label: 'Length (overall)', value: '21 ft 9 in' },
+  { group: 'Dimensions', label: 'Height', value: '10 ft 6 in' },
+  { group: 'Dimensions', label: 'Width', value: '7 ft 6 in (96 in)' },
+
+  { group: 'Weights', label: 'Dry weight (UVW)', value: '~3,594 lb', note: 'Verify on the trailer sticker' },
+  { group: 'Weights', label: 'GVWR', value: '~5,575 lb', note: 'Verify on the federal cert label' },
+  { group: 'Weights', label: 'Cargo capacity (CCC)', value: '~1,981 lb', note: 'Verify on the yellow cargo sticker' },
+  { group: 'Weights', label: 'Tongue weight', value: '~475 lb', note: 'Verify — scale it loaded' },
+  { group: 'Weights', label: 'Hitch ball size', value: '2 in' },
+
+  { group: 'Tires', label: 'Tire size', value: 'ST205/75 R14', note: 'Verify on the tire sidewall' },
+  { group: 'Tires', label: 'Tire cold PSI', value: '', note: 'Read off the tire sidewall / cert label' },
+  { group: 'Tires', label: 'Lug torque', value: '', note: 'Per owner’s manual' },
+
+  { group: 'Tanks', label: 'Fresh water', value: '26 gal' },
+  { group: 'Tanks', label: 'Gray water', value: '23 gal' },
+  { group: 'Tanks', label: 'Black water', value: '23 gal' },
+  { group: 'Tanks', label: 'Propane', value: '1 × 20 lb tank', note: 'Verify' },
+
+  { group: 'Systems', label: 'Air conditioner', value: '13,500 BTU' },
+  { group: 'Systems', label: 'Furnace', value: '20,000 BTU' },
+  { group: 'Systems', label: 'Water heater', value: 'Tankless (on-demand)' },
+  { group: 'Systems', label: 'Shore power', value: '30 amp' },
+  { group: 'Systems', label: 'Axles', value: 'Single' },
+];
+function seedRig() {
+  return { fields: DEFAULT_RIG.map(f => ({ id: uid('r_'), group: f.group, label: f.label, value: f.value, note: f.note || '', builtin: true })) };
+}
+
 /* ---------- Utilities ---------- */
 let _idc = 0;
 function uid(prefix) {
@@ -210,6 +248,7 @@ function todayISO() { return new Date().toISOString(); }
 /* ---------- State ---------- */
 let state = load();
 let view = { tab: 'trip', sub: null, id: null };
+let prevTab = 'trip'; // tab to return to when leaving the rig profile
 
 function seedState() {
   const order = [];
@@ -221,11 +260,12 @@ function seedState() {
       items: l.items.map(t => ({ id: uid('i_'), text: t })),
     };
   }
-  return { schemaVersion: SCHEMA, checklists: { order, defs }, inventory: seedInventory(), currentTrip: null, history: [] };
+  return { schemaVersion: SCHEMA, checklists: { order, defs }, inventory: seedInventory(), rig: seedRig(), currentTrip: null, history: [] };
 }
 // Bring older saved state up to the current schema (adds new fields in place).
 function migrate(raw) {
   if (!raw.inventory || !Array.isArray(raw.inventory.categories)) raw.inventory = seedInventory();
+  if (!raw.rig || !Array.isArray(raw.rig.fields)) raw.rig = seedRig();
   if (raw.currentTrip && !raw.currentTrip.packed) raw.currentTrip.packed = {};
   if (!raw.history) raw.history = [];
   raw.schemaVersion = SCHEMA;
@@ -276,6 +316,18 @@ function findInvItem(id) {
   return null;
 }
 
+/* ---------- Rig profile helpers ---------- */
+function rigFields() { return state.rig.fields; }
+function findRigField(id) { return rigFields().find(f => f.id === id); }
+function rigGroups() {
+  const order = [], map = {};
+  for (const f of rigFields()) {
+    if (!map[f.group]) { map[f.group] = []; order.push(f.group); }
+    map[f.group].push(f);
+  }
+  return order.map(g => ({ name: g, fields: map[g] }));
+}
+
 /* ============================================================
    Rendering
    ============================================================ */
@@ -288,6 +340,8 @@ function render() {
   // active tab
   document.querySelectorAll('.tab').forEach(t =>
     t.classList.toggle('active', t.dataset.tab === view.tab));
+  const rigBtn = document.getElementById('rigBtn');
+  if (rigBtn) rigBtn.classList.toggle('active', view.tab === 'rig');
 
   let html = '';
   if (view.tab === 'trip')         html = view.sub === 'list' ? renderTripList(view.id) : view.sub === 'packing' ? renderTripPacking() : renderTripHome();
@@ -295,6 +349,7 @@ function render() {
   else if (view.tab === 'packing') html = renderPackingEditor();
   else if (view.tab === 'history') html = view.sub === 'view' ? renderHistoryDetail(view.id) : renderHistory();
   else if (view.tab === 'data')    html = renderData();
+  else if (view.tab === 'rig')     html = renderRigProfile();
 
   viewEl().innerHTML = html;
 }
@@ -605,7 +660,48 @@ function renderData() {
       <p class="muted" style="margin:0">Restore all six checklists to defaults and erase trips &amp; history. This cannot be undone.</p>
       <button class="btn btn-danger btn-block" data-action="reset-all">Reset everything to defaults</button>
     </div>
-    <p class="muted center" style="font-size:.75rem;margin-top:22px">RV Trailer Manager · Phase 2 · works offline</p>`;
+    <p class="muted center" style="font-size:.75rem;margin-top:22px">RV Trailer Manager · Phase 3a · works offline</p>`;
+}
+
+/* ---------- RIG PROFILE (reference page, opened from the header) ---------- */
+function renderRigProfile() {
+  const groups = rigGroups().map(g => {
+    const rows = g.fields.map(f => {
+      const labelCell = f.builtin
+        ? `<span class="rig-label">${esc(f.label)}</span>`
+        : `<input type="text" class="rig-label-input" value="${esc(f.label)}" data-action="rig-label" data-id="${f.id}" aria-label="field label">`;
+      const del = f.builtin ? '' : `<button class="iconbtn danger" data-action="del-rig-field" data-id="${f.id}" aria-label="Delete field">✕</button>`;
+      return `
+        <div class="rig-field">
+          <div class="rig-line">
+            ${labelCell}
+            <input type="text" class="rig-val" value="${esc(f.value)}" data-action="rig-value" data-id="${f.id}" placeholder="—">
+            ${del}
+          </div>
+          ${f.note ? `<div class="rig-note">⚠ ${esc(f.note)}</div>` : ''}
+        </div>`;
+    }).join('');
+    return `
+      <div class="section-label" style="margin-top:18px">${esc(g.name)}</div>
+      <div class="card" style="padding:6px 14px">${rows}</div>`;
+  }).join('');
+
+  return `
+    <button class="back" data-action="back-rig">← Back</button>
+    <div class="detail-head"><span class="emoji">🚐</span><h2>Rig Profile</h2></div>
+    <p class="detail-sub">2026 Forest River Cherokee Wolf Pup 16BHSW · quick reference</p>
+    <div class="card" style="background:#fff7ef;border-color:#f3d9bf">
+      <p class="muted" style="margin:0;font-size:.82rem">⚠ Figures marked below are from public listings — confirm them against your trailer’s federal cert label, yellow cargo sticker, and tire sidewalls before relying on them.</p>
+    </div>
+    ${groups}
+    <div class="section-label" style="margin-top:18px">Add a custom field</div>
+    <div class="card stack">
+      <div class="row" style="gap:8px">
+        <input type="text" id="newRigLabel" placeholder="Label (e.g. Battery)" autocomplete="off">
+        <input type="text" id="newRigValue" placeholder="Value" autocomplete="off">
+      </div>
+      <button class="btn btn-primary btn-sm" data-action="add-rig-field">Add field</button>
+    </div>`;
 }
 
 /* ============================================================
@@ -755,6 +851,22 @@ const ACTIONS = {
     save(); go('lists');
   },
 
+  /* rig profile */
+  'back-rig': () => go(prevTab),
+  'add-rig-field': () => {
+    const labelEl = document.getElementById('newRigLabel');
+    const valueEl = document.getElementById('newRigValue');
+    const label = (labelEl.value || '').trim();
+    if (!label) { toast('Enter a field label'); return; }
+    state.rig.fields.push({ id: uid('r_'), group: 'Custom', label, value: (valueEl.value || '').trim(), note: '', builtin: false });
+    save(); render();
+  },
+  'del-rig-field': (id) => {
+    const f = findRigField(id); if (!f || f.builtin) return;
+    state.rig.fields = rigFields().filter(x => x.id !== id);
+    save(); render();
+  },
+
   /* history */
   'open-history': (id) => go('history', 'view', id),
   'back-history': () => go('history'),
@@ -791,6 +903,8 @@ const CHANGE_ACTIONS = {
     f.item.qty = Math.max(1, parseInt(value, 10) || 1);
     save(); render();
   },
+  'rig-value': (id, value) => { const f = findRigField(id); if (f) { f.value = value.trim(); save(); } },
+  'rig-label': (id, value) => { const f = findRigField(id); if (f) { f.label = value.trim() || f.label; save(); } },
 };
 
 function moveItem(id, dir) {
@@ -853,6 +967,13 @@ document.getElementById('tabbar').addEventListener('click', e => {
   if (btn) go(btn.dataset.tab);
 });
 
+// rig profile button in the header
+document.getElementById('rigBtn').addEventListener('click', () => {
+  if (view.tab === 'rig') { go(prevTab); return; }
+  prevTab = view.tab;
+  go('rig');
+});
+
 // delegated clicks inside view
 viewEl().addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
@@ -882,6 +1003,7 @@ viewEl().addEventListener('keydown', e => {
   else if (t.id === 'newCatName') ACTIONS['add-category']();
   else if (t.id.startsWith('newInv_')) ACTIONS['add-inv-item'](t.id.slice('newInv_'.length));
   else if (t.id.startsWith('newQty_')) ACTIONS['add-inv-item'](t.id.slice('newQty_'.length));
+  else if (t.id === 'newRigLabel' || t.id === 'newRigValue') ACTIONS['add-rig-field']();
 });
 
 // import file

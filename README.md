@@ -26,7 +26,14 @@ works with no cell signal, and installs to the home screen like a native app (PW
   on the Trip screen to check off what's packed; it resets per trip, counts toward
   overall progress, and is saved to history. Kept separate from the Loading checklist.
 
-Planned next (see [SPEC.md](SPEC.md)): maintenance log, rig profile.
+## Phase 3a
+
+- **Rig profile** — a quick-reference spec page opened from the 🪪 Rig button in the
+  title bar. Pre-filled for the 2026 Wolf Pup 16BHSW (dimensions, weights, tanks, tires,
+  systems) with editable values, verify reminders on safety-critical figures, and the
+  ability to add your own custom fields.
+
+Planned next (see [SPEC.md](SPEC.md)): maintenance log (Phase 3b).
 
 ## Running
 

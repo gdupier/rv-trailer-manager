@@ -118,9 +118,11 @@ A bottom tab bar (thumb-reachable) with five destinations:
 - Sortable/most-recent-first; no "due" logic or reminders.
 - Useful as a record to eyeball ("when did I last repack the bearings?").
 
-### 5.5 Rig profile (reference page)
-A quick-reference page of specs you look up at the campsite. All fields editable; it's
-a static reference, not connected to other features.
+### 5.5 Rig profile (reference page) ✅ **(Phase 3a — shipped)**
+A quick-reference page of specs you look up at the campsite. Opened from a **🪪 Rig
+button in the top-right of the title bar** (not a tab), so it's one tap from anywhere.
+Fields are **fixed (pre-filled, editable values) plus custom extras** you can add. It's a
+static reference, not connected to other features. Schema bumped to v3 with migration.
 
 **Pre-filled for the owner's rig — 2026 Forest River Cherokee Wolf Pup 16BHSW:**
 
@@ -372,7 +374,13 @@ enable Pages on `main` root — mirroring the tic-tac-toe deploy workflow (every
 - Decoupled from Loading (kept separate per owner's choice); tied to the trip and
   archived to history; schema v2 migration for existing data
 
-**Phase 3 — Maintenance log + Rig profile**
+**Phase 3a — Rig profile** ✅ **shipped**
+- Opened from a 🪪 Rig button in the header; grouped fixed fields (pre-filled for the
+  16BHSW) with editable values + verify reminders, plus user-added custom fields; schema v3
+
+**Phase 3b — Maintenance log** *(next)*
+
+**Phase 3 — Maintenance log + Rig profile** *(superseded by 3a/3b above)*
 - Simple service log entries
 - Rig reference page
 
