@@ -7,7 +7,7 @@
    ============================================================ */
 
 const STORAGE_KEY = 'rvManager_v1';
-const SCHEMA = 3;
+const SCHEMA = 4;
 
 /* ---------- Default (built-in) checklists ---------- */
 const DEFAULT_LISTS = [
@@ -272,12 +272,13 @@ function seedState() {
       items: l.items.map(t => ({ id: uid('i_'), text: t })),
     };
   }
-  return { schemaVersion: SCHEMA, checklists: { order, defs }, inventory: seedInventory(), rig: seedRig(), currentTrip: null, history: [] };
+  return { schemaVersion: SCHEMA, checklists: { order, defs }, inventory: seedInventory(), rig: seedRig(), planned: [], currentTrip: null, history: [] };
 }
 // Bring older saved state up to the current schema (adds new fields in place).
 function migrate(raw) {
   if (!raw.inventory || !Array.isArray(raw.inventory.categories)) raw.inventory = seedInventory();
   if (!raw.rig || !Array.isArray(raw.rig.fields)) raw.rig = seedRig();
+  if (!Array.isArray(raw.planned)) raw.planned = [];
   if (raw.currentTrip && !raw.currentTrip.packed) raw.currentTrip.packed = {};
   if (!raw.history) raw.history = [];
   raw.schemaVersion = SCHEMA;
@@ -340,6 +341,10 @@ function rigGroups() {
   return order.map(g => ({ name: g, fields: map[g] }));
 }
 
+/* ---------- Planned trips helpers ---------- */
+function findPlanned(id) { return state.planned.find(p => p.id === id); }
+function normalizeUrl(u) { return u ? (/^https?:\/\//i.test(u) ? u : 'https://' + u) : ''; }
+
 /* ============================================================
    Rendering
    ============================================================ */
@@ -354,6 +359,8 @@ function render() {
     t.classList.toggle('active', t.dataset.tab === view.tab));
   const rigBtn = document.getElementById('rigBtn');
   if (rigBtn) rigBtn.classList.toggle('active', view.tab === 'rig');
+  const plannedBtn = document.getElementById('plannedBtn');
+  if (plannedBtn) plannedBtn.classList.toggle('active', view.tab === 'planned');
 
   let html = '';
   if (view.tab === 'trip')         html = view.sub === 'list' ? renderTripList(view.id) : view.sub === 'packing' ? renderTripPacking() : renderTripHome();
@@ -362,6 +369,7 @@ function render() {
   else if (view.tab === 'history') html = view.sub === 'view' ? renderHistoryDetail(view.id) : renderHistory();
   else if (view.tab === 'data')    html = renderData();
   else if (view.tab === 'rig')     html = renderRigProfile();
+  else if (view.tab === 'planned') html = view.sub === 'edit' ? renderPlannedEdit(view.id) : renderPlannedList();
 
   viewEl().innerHTML = html;
 }
@@ -716,6 +724,65 @@ function renderRigProfile() {
     </div>`;
 }
 
+/* ---------- PLANNED TRIPS (opened from the header) ---------- */
+function renderPlannedList() {
+  const rows = state.planned.map(p => {
+    const dates = p.start ? fmtDate(p.start) + (p.end ? ' → ' + fmtDate(p.end) : '') : 'Dates TBD';
+    const title = p.name || p.campsite || 'Untitled trip';
+    const sub = [dates, (p.name && p.campsite) ? esc(p.campsite) : ''].filter(Boolean).join(' · ');
+    return `
+      <button class="tile" data-action="edit-planned" data-id="${p.id}" style="flex-direction:row;align-items:center">
+        <span class="emoji">📅</span>
+        <span style="flex:1">
+          <span class="name" style="display:block">${esc(title)}</span>
+          <span class="count">${sub}</span>
+        </span>
+        <span class="muted">›</span>
+      </button>`;
+  }).join('');
+
+  return `
+    <button class="back" data-action="back-planned">← Back</button>
+    <div class="detail-head"><span class="emoji">📅</span><h2>Planned Trips</h2></div>
+    <p class="detail-sub">Trips you’re considering or have booked</p>
+    ${state.planned.length
+      ? `<div class="grid" style="grid-template-columns:1fr">${rows}</div>`
+      : `<div class="empty"><div class="big">📅</div><p>No planned trips yet.<br>Add one to start planning.</p></div>`}
+    <button class="btn btn-primary btn-block" data-action="add-planned" style="margin-top:14px">+ Add a planned trip</button>`;
+}
+
+function renderPlannedEdit(id) {
+  const p = findPlanned(id);
+  if (!p) { view = { tab: 'planned', sub: null, id: null }; return renderPlannedList(); }
+  const href = normalizeUrl(p.link);
+  return `
+    <button class="back" data-action="back-planned">← Planned Trips</button>
+    <div class="detail-head"><span class="emoji">📅</span><h2>${esc(p.name || p.campsite || 'Planned trip')}</h2></div>
+    <div class="card stack">
+      <label class="field"><span>Trip name</span>
+        <input type="text" value="${esc(p.name)}" data-action="plan-field" data-field="name" data-id="${id}" placeholder="e.g. Fall colors trip"></label>
+      <div class="row" style="gap:10px;align-items:flex-start">
+        <label class="field" style="flex:1"><span>Start date</span>
+          <input type="date" value="${esc(p.start)}" data-action="plan-field" data-field="start" data-id="${id}"></label>
+        <label class="field" style="flex:1"><span>End date</span>
+          <input type="date" value="${esc(p.end)}" data-action="plan-field" data-field="end" data-id="${id}"></label>
+      </div>
+      <label class="field"><span>Campsite</span>
+        <input type="text" value="${esc(p.campsite)}" data-action="plan-field" data-field="campsite" data-id="${id}" placeholder="e.g. Pine Lake State Park"></label>
+      <label class="field"><span>Campsite link</span>
+        <input type="url" value="${esc(p.link)}" data-action="plan-field" data-field="link" data-id="${id}" placeholder="https://…" inputmode="url"></label>
+      ${href ? `<a class="btn btn-ghost btn-sm" href="${esc(href)}" target="_blank" rel="noopener">Open campsite page ↗</a>` : ''}
+      <label class="field"><span>Reservation details</span>
+        <textarea rows="3" data-action="plan-field" data-field="reservation" data-id="${id}" placeholder="Confirmation #, site #, cost, check-in time…">${esc(p.reservation)}</textarea></label>
+      <label class="field"><span>Notes</span>
+        <textarea rows="2" data-action="plan-field" data-field="notes" data-id="${id}" placeholder="Anything else to remember">${esc(p.notes)}</textarea></label>
+    </div>
+    <div class="stack" style="margin-top:14px">
+      <button class="btn btn-accent btn-block" data-action="start-from-plan" data-id="${id}">🧭 Start this trip now</button>
+      <button class="btn btn-danger btn-block" data-action="del-planned" data-id="${id}">🗑 Delete planned trip</button>
+    </div>`;
+}
+
 /* ============================================================
    Actions
    ============================================================ */
@@ -879,6 +946,27 @@ const ACTIONS = {
     save(); render();
   },
 
+  /* planned trips */
+  'back-planned': () => go(prevTab),
+  'add-planned': () => {
+    const id = uid('pl_');
+    state.planned.push({ id, name: '', start: '', end: '', campsite: '', link: '', reservation: '', notes: '' });
+    save(); go('planned', 'edit', id);
+  },
+  'edit-planned': (id) => go('planned', 'edit', id),
+  'del-planned': (id) => {
+    if (!confirm('Delete this planned trip?')) return;
+    state.planned = state.planned.filter(x => x.id !== id);
+    save(); go('planned');
+  },
+  'start-from-plan': (id) => {
+    const p = findPlanned(id); if (!p) return;
+    if (state.currentTrip && !confirm('You already have an active trip. Replace it with this one? Current checkmarks will be lost.')) return;
+    const name = p.name || p.campsite || 'Untitled trip';
+    state.currentTrip = { id: uid('t_'), name, place: p.campsite || '', startDate: todayISO(), checks: {}, packed: {} };
+    save(); toast('Trip started — lists reset'); go('trip');
+  },
+
   /* history */
   'open-history': (id) => go('history', 'view', id),
   'back-history': () => go('history'),
@@ -917,6 +1005,7 @@ const CHANGE_ACTIONS = {
   },
   'rig-value': (id, value) => { const f = findRigField(id); if (f) { f.value = value.trim(); save(); } },
   'rig-label': (id, value) => { const f = findRigField(id); if (f) { f.label = value.trim() || f.label; save(); } },
+  'plan-field': (id, value, el) => { const p = findPlanned(id); if (p) { p[el.dataset.field] = value; save(); } },
 };
 
 function moveItem(id, dir) {
@@ -979,12 +1068,14 @@ document.getElementById('tabbar').addEventListener('click', e => {
   if (btn) go(btn.dataset.tab);
 });
 
-// rig profile button in the header
-document.getElementById('rigBtn').addEventListener('click', () => {
-  if (view.tab === 'rig') { go(prevTab); return; }
-  prevTab = view.tab;
-  go('rig');
-});
+// header overlay buttons (rig profile, planned trips)
+function openOverlay(tab) {
+  if (view.tab === tab) { go(prevTab); return; }           // tapping again closes it
+  if (view.tab !== 'rig' && view.tab !== 'planned') prevTab = view.tab;
+  go(tab);
+}
+document.getElementById('rigBtn').addEventListener('click', () => openOverlay('rig'));
+document.getElementById('plannedBtn').addEventListener('click', () => openOverlay('planned'));
 
 // delegated clicks inside view
 viewEl().addEventListener('click', e => {
@@ -1002,7 +1093,7 @@ viewEl().addEventListener('change', e => {
   const el = e.target.closest('[data-action]');
   if (!el) return;
   const fn = CHANGE_ACTIONS[el.dataset.action];
-  if (fn) fn(el.dataset.id, el.value);
+  if (fn) fn(el.dataset.id, el.value, el);
 });
 
 // Enter key to add items / lists
