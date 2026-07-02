@@ -1,10 +1,14 @@
 /* RV Trailer Manager — service worker (offline app shell) */
-const CACHE = 'rvm-v8';
+const CACHE = 'rvm-v9';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './firebase-config.js',
+  './sync-crypto.js',
+  './sync-merge.js',
+  './sync.js',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',

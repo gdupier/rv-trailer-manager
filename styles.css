@@ -224,6 +224,14 @@ li.item.checked .qty { color: var(--muted); }
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(-2px); }
 
+/* ---------- Cloud sync (Data tab) ---------- */
+.sync-status { margin: 0; font-size: .88rem; font-weight: 600; color: var(--green-mid); }
+.sync-warn { margin: 8px 0 0; font-size: .82rem; color: #b45309; background: #fff7ed; padding: 10px 12px; border-radius: 8px; border: 1px solid #fed7aa; }
+label.check-row {
+  display: flex; align-items: flex-start; gap: 10px; font-size: .85rem; color: var(--muted); cursor: pointer;
+}
+label.check-row input { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; }
+
 @media (max-width: 480px) {
   .grid { grid-template-columns: 1fr 1fr; }
   #appHeader h1 { font-size: 1.08rem; }

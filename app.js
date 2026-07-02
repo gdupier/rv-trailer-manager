@@ -1,13 +1,14 @@
 'use strict';
 
 /* ============================================================
-   RV Trailer Manager — Phase 3a
-   Offline-first checklists + trip flow + packing inventory + rig profile.
-   All state in localStorage.
+   RV Trailer Manager — Phase Sync-1
+   Offline-first checklists + trip flow + packing + rig + cloud sync.
+   All state in localStorage; optional Firebase sync for household devices.
    ============================================================ */
 
 const STORAGE_KEY = 'rvManager_v1';
-const SCHEMA = 4;
+const DEVICE_ID_KEY = 'rvDeviceId';
+const SCHEMA = 5;
 
 /* ---------- Default (built-in) checklists ---------- */
 const DEFAULT_LISTS = [
@@ -257,6 +258,53 @@ function fmtDate(iso) {
 }
 function todayISO() { return new Date().toISOString(); }
 
+function deviceId() {
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id = 'd_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
+}
+
+function isStampOn(entry) {
+  return window.RVSyncMerge ? window.RVSyncMerge.isStampOn(entry) : !!entry;
+}
+
+function stampOn(map, id) {
+  map[id] = { on: true, at: Date.now(), by: deviceId() };
+}
+
+function stampOff(map, id) {
+  map[id] = { on: false, at: Date.now(), by: deviceId() };
+}
+
+function migrateChecksToStamps(checks) {
+  const out = {};
+  const now = Date.now();
+  const by = deviceId();
+  for (const [id, val] of Object.entries(checks || {})) {
+    if (val === true) out[id] = { on: true, at: now, by };
+    else if (val && typeof val === 'object') out[id] = val;
+  }
+  return out;
+}
+
+function freshMeta() {
+  return { revision: 0, updatedAt: Date.now(), deviceId: deviceId() };
+}
+
+function bumpMeta() {
+  if (!state.meta) state.meta = freshMeta();
+  state.meta.revision = (state.meta.revision || 0) + 1;
+  state.meta.updatedAt = Date.now();
+  state.meta.deviceId = deviceId();
+}
+
+function touchTrip() {
+  if (state.currentTrip) state.currentTrip.updatedAt = Date.now();
+}
+
 /* ---------- State ---------- */
 let state = load();
 let view = { tab: 'trip', sub: null, id: null };
@@ -272,7 +320,11 @@ function seedState() {
       items: l.items.map(t => ({ id: uid('i_'), text: t })),
     };
   }
-  return { schemaVersion: SCHEMA, checklists: { order, defs }, inventory: seedInventory(), rig: seedRig(), planned: [], currentTrip: null, history: [] };
+  return {
+    schemaVersion: SCHEMA, meta: freshMeta(),
+    checklists: { order, defs }, inventory: seedInventory(), rig: seedRig(),
+    planned: [], currentTrip: null, history: [],
+  };
 }
 // Bring older saved state up to the current schema (adds new fields in place).
 function migrate(raw) {
@@ -281,6 +333,12 @@ function migrate(raw) {
   if (!Array.isArray(raw.planned)) raw.planned = [];
   if (raw.currentTrip && !raw.currentTrip.packed) raw.currentTrip.packed = {};
   if (!raw.history) raw.history = [];
+  if (raw.currentTrip) {
+    raw.currentTrip.checks = migrateChecksToStamps(raw.currentTrip.checks);
+    raw.currentTrip.packed = migrateChecksToStamps(raw.currentTrip.packed);
+    if (!raw.currentTrip.updatedAt) raw.currentTrip.updatedAt = Date.now();
+  }
+  if (!raw.meta) raw.meta = freshMeta();
   raw.schemaVersion = SCHEMA;
   return raw;
 }
@@ -291,15 +349,25 @@ function load() {
   } catch (e) { /* fall through */ }
   return seedState();
 }
-function save() {
+function save(opts) {
+  bumpMeta();
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  catch (e) { toast('⚠️ Could not save — storage full?'); }
+  catch (e) { toast('⚠️ Could not save — storage full?'); return; }
+  if (!opts?.localOnly && window.RVSync) window.RVSync.schedulePush();
+}
+
+function setState(next, opts) {
+  state = migrate(next);
+  save(opts);
+  render();
 }
 
 /* ---------- Derived helpers ---------- */
 function lists() { return state.checklists.order.map(id => state.checklists.defs[id]).filter(Boolean); }
 function getList(id) { return state.checklists.defs[id]; }
-function isChecked(itemId) { return !!(state.currentTrip && state.currentTrip.checks[itemId]); }
+function isChecked(itemId) {
+  return !!(state.currentTrip && isStampOn(state.currentTrip.checks[itemId]));
+}
 function listProgress(id) {
   const items = getList(id).items;
   const total = items.length;
@@ -316,7 +384,9 @@ function overallProgress() {
 /* ---------- Packing inventory helpers ---------- */
 function categories() { return state.inventory.categories; }
 function inventoryItems() { return categories().flatMap(c => c.items); }
-function isPacked(itemId) { return !!(state.currentTrip && state.currentTrip.packed && state.currentTrip.packed[itemId]); }
+function isPacked(itemId) {
+  return !!(state.currentTrip && state.currentTrip.packed && isStampOn(state.currentTrip.packed[itemId]));
+}
 function packingProgress() {
   const items = inventoryItems();
   const total = items.length;
@@ -667,11 +737,52 @@ function renderHistoryDetail(id) {
 }
 
 /* ---------- DATA ---------- */
+function syncStatusLine() {
+  if (!window.RVSync) return 'Sync module loading…';
+  const s = window.RVSync.getStatus();
+  if (!s.configured) return '⚠️ Firebase not configured — see FIREBASE_SETUP.md';
+  if (!s.enabled) return 'Sync is off — enable below to share data across devices.';
+  if (s.busy) return '⟳ Syncing…';
+  if (s.lastError) return '⚠️ ' + s.lastError;
+  if (!navigator.onLine) return '📴 Offline — changes saved on this device';
+  if (s.lastSync) {
+    const mins = Math.round((Date.now() - s.lastSync) / 60000);
+    if (mins < 1) return '✓ Synced just now';
+    if (mins < 60) return '✓ Synced ' + mins + ' min ago';
+    return '✓ Synced ' + Math.round(mins / 60) + 'h ago';
+  }
+  return '✓ Sync enabled';
+}
+
 function renderData() {
-  return `
-    <div class="section-label">Backup &amp; data</div>
+  const syncOn = window.RVSync && window.RVSync.isEnabled();
+  const configured = window.RVSync && window.RVSync.isConfigured();
+  const syncSection = syncOn ? `
     <div class="card stack">
-      <p class="muted" style="margin:0">Everything is stored on this device only. Export a backup before clearing your browser or switching phones.</p>
+      <p class="sync-status">${esc(syncStatusLine())}</p>
+      <button class="btn btn-primary btn-block" data-action="sync-now">⟳ Sync now</button>
+      <button class="btn btn-ghost btn-block" data-action="disable-sync">Turn off cloud sync</button>
+    </div>` : `
+    <div class="card stack">
+      <p class="muted" style="margin:0">Use the same passphrase on every phone and tablet. Checkmarks merge when you alternate devices during a trip.</p>
+      ${configured ? '' : '<p class="sync-warn">Configure Firebase first (FIREBASE_SETUP.md), then reload the app.</p>'}
+      <label class="field"><span>Household passphrase</span>
+        <input type="password" id="syncPass" placeholder="At least 8 characters" autocomplete="new-password"></label>
+      <label class="field"><span>Confirm passphrase</span>
+        <input type="password" id="syncPass2" placeholder="Same passphrase again" autocomplete="new-password"></label>
+      <label class="check-row">
+        <input type="checkbox" id="syncRemember" checked>
+        <span>Remember on this device (needed for automatic sync)</span>
+      </label>
+      <button class="btn btn-primary btn-block" data-action="enable-sync" ${configured ? '' : 'disabled'}>☁️ Enable cloud sync</button>
+    </div>`;
+
+  return `
+    <div class="section-label">Cloud sync</div>
+    ${syncSection}
+    <div class="section-label" style="margin-top:22px">Backup &amp; data</div>
+    <div class="card stack">
+      <p class="muted" style="margin:0">Export a JSON backup before clearing your browser. Cloud sync is encrypted, but local export is still a good safety net.</p>
       <button class="btn btn-primary btn-block" data-action="export-data">⬇️ Export backup (.json)</button>
       <button class="btn btn-ghost btn-block" data-action="import-data">⬆️ Import backup</button>
     </div>
@@ -680,7 +791,7 @@ function renderData() {
       <p class="muted" style="margin:0">Restore all six checklists to defaults and erase trips &amp; history. This cannot be undone.</p>
       <button class="btn btn-danger btn-block" data-action="reset-all">Reset everything to defaults</button>
     </div>
-    <p class="muted center" style="font-size:.75rem;margin-top:22px">RV Trailer Manager · Phase 3a · works offline</p>`;
+    <p class="muted center" style="font-size:.75rem;margin-top:22px">RV Trailer Manager · works offline · optional cloud sync</p>`;
 }
 
 /* ---------- RIG PROFILE (reference page, opened from the header) ---------- */
@@ -793,7 +904,10 @@ const ACTIONS = {
   'start-trip': () => {
     const name = (document.getElementById('tripName').value || '').trim() || 'Untitled trip';
     const place = (document.getElementById('tripPlace').value || '').trim();
-    state.currentTrip = { id: uid('t_'), name, place, startDate: todayISO(), checks: {}, packed: {} };
+    state.currentTrip = {
+      id: uid('t_'), name, place, startDate: todayISO(),
+      checks: {}, packed: {}, updatedAt: Date.now(),
+    };
     save(); toast('Trip started — lists reset'); go('trip');
   },
   'open-list': (id) => go('trip', 'list', id),
@@ -801,14 +915,15 @@ const ACTIONS = {
   'toggle-item': (id) => {
     if (!state.currentTrip) return;
     const c = state.currentTrip.checks;
-    if (c[id]) delete c[id]; else c[id] = true;
+    if (isStampOn(c[id])) stampOff(c, id); else stampOn(c, id);
+    touchTrip();
     save();
-    // re-render current list view in place
     render();
   },
   'uncheck-list': (id) => {
     if (!state.currentTrip) return;
-    for (const it of getList(id).items) delete state.currentTrip.checks[it.id];
+    for (const it of getList(id).items) stampOff(state.currentTrip.checks, it.id);
+    touchTrip();
     save(); render();
   },
   'goto-edit': (id) => go('lists', 'edit', id),
@@ -842,12 +957,14 @@ const ACTIONS = {
   'toggle-packed': (id) => {
     if (!state.currentTrip) return;
     const p = state.currentTrip.packed;
-    if (p[id]) delete p[id]; else p[id] = true;
+    if (isStampOn(p[id])) stampOff(p, id); else stampOn(p, id);
+    touchTrip();
     save(); render();
   },
   'uncheck-packing': () => {
     if (!state.currentTrip) return;
-    state.currentTrip.packed = {};
+    for (const it of inventoryItems()) stampOff(state.currentTrip.packed, it.id);
+    touchTrip();
     save(); render();
   },
 
@@ -963,7 +1080,10 @@ const ACTIONS = {
     const p = findPlanned(id); if (!p) return;
     if (state.currentTrip && !confirm('You already have an active trip. Replace it with this one? Current checkmarks will be lost.')) return;
     const name = p.name || p.campsite || 'Untitled trip';
-    state.currentTrip = { id: uid('t_'), name, place: p.campsite || '', startDate: todayISO(), checks: {}, packed: {} };
+    state.currentTrip = {
+      id: uid('t_'), name, place: p.campsite || '', startDate: todayISO(),
+      checks: {}, packed: {}, updatedAt: Date.now(),
+    };
     save(); toast('Trip started — lists reset'); go('trip');
   },
 
@@ -977,6 +1097,30 @@ const ACTIONS = {
   },
 
   /* data */
+  'enable-sync': async () => {
+    const p1 = (document.getElementById('syncPass')?.value || '');
+    const p2 = (document.getElementById('syncPass2')?.value || '');
+    const remember = !!document.getElementById('syncRemember')?.checked;
+    if (p1.length < 8) { toast('Passphrase must be at least 8 characters'); return; }
+    if (p1 !== p2) { toast('Passphrases do not match'); return; }
+    try {
+      await window.RVSync.enableSync(p1, remember);
+      toast('Cloud sync enabled ☁️');
+      render();
+    } catch (e) { toast('⚠️ ' + (e.message || e)); }
+  },
+  'disable-sync': () => {
+    if (!confirm('Turn off cloud sync on this device? Your data stays here; other devices are unaffected.')) return;
+    window.RVSync.disableSync();
+    toast('Cloud sync turned off');
+  },
+  'sync-now': async () => {
+    try {
+      await window.RVSync.syncNow();
+      toast('Sync complete');
+      render();
+    } catch (e) { toast('⚠️ ' + (e.message || e)); }
+  },
   'export-data': exportData,
   'import-data': () => document.getElementById('importFile').click(),
   'reset-all': () => {
@@ -1040,7 +1184,7 @@ function importData(file) {
       const data = JSON.parse(reader.result);
       if (!data || !data.checklists || !data.checklists.defs) throw new Error('bad file');
       if (!confirm('Replace all current data with this backup?')) return;
-      state = data;
+      state = migrate(data);
       if (!state.history) state.history = [];
       save(); toast('Backup imported'); go('trip');
     } catch (e) { toast('⚠️ Not a valid backup file'); }
@@ -1119,6 +1263,17 @@ document.getElementById('importFile').addEventListener('change', e => {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
+
+window.RVApp = {
+  getState: () => state,
+  setState,
+  deviceId,
+  render,
+  toast,
+  onSyncStatus: () => { if (view.tab === 'data') render(); },
+};
+
+if (window.RVSync) window.RVSync.init();
 
 // go
 render();

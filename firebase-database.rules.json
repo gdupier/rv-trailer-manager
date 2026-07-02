@@ -1,0 +1,11 @@
+{
+  "rules": {
+    "sync": {
+      "$token": {
+        ".read": "$token.matches(/^[a-f0-9]{64}$/)",
+        ".write": "$token.matches(/^[a-f0-9]{64}$/)",
+        ".validate": "newData.hasChildren(['ciphertext', 'iv', 'revision', 'updatedAt']) && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('revision').isNumber() && newData.child('updatedAt').isNumber()"
+      }
+    }
+  }
+}
