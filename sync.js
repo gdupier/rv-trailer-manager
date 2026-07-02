@@ -113,7 +113,7 @@ window.RVSync = (function () {
       const remoteState = await window.RVSyncCrypto.decryptJson(key, remoteWrap.ciphertext, remoteWrap.iv);
       const localState = window.RVApp.getState();
       const merged = window.RVSyncMerge.mergeStates(localState, remoteState, window.RVApp.deviceId());
-      window.RVApp.setState(merged, { localOnly: true });
+      window.RVApp.setState(merged, { localOnly: true, silent: true });
       setStatus({ busy: false, lastSync: Date.now(), lastError: null });
       return true;
     } catch (e) {
@@ -142,7 +142,8 @@ window.RVSync = (function () {
       if (remoteWrap) {
         const remoteState = await window.RVSyncCrypto.decryptJson(key, remoteWrap.ciphertext, remoteWrap.iv);
         stateToPush = window.RVSyncMerge.mergeStates(stateToPush, remoteState, window.RVApp.deviceId());
-        window.RVApp.setState(stateToPush, { localOnly: true });
+        window.RVApp.setState(stateToPush, { localOnly: true, silent: true });
+        stateToPush = window.RVApp.getState();
       }
 
       if (!stateToPush.meta) stateToPush.meta = { revision: 1, updatedAt: Date.now() };
@@ -170,12 +171,18 @@ window.RVSync = (function () {
     pushTimer = setTimeout(() => pushLocal(), PUSH_DELAY_MS);
   }
 
+  function afterSync() {
+    if (!window.RVApp) return;
+    if (window.RVApp.safeRender) window.RVApp.safeRender();
+    else if (window.RVApp.render) window.RVApp.render();
+  }
+
   async function syncNow() {
     if (!isEnabled()) return;
     try {
       await pullAndMerge();
       await pushLocal();
-      if (window.RVApp && window.RVApp.render) window.RVApp.render();
+      afterSync();
     } catch (e) {
       if (window.RVApp && window.RVApp.toast) window.RVApp.toast('Sync failed: ' + (e.message || e));
     }
@@ -185,15 +192,16 @@ window.RVSync = (function () {
     if (isEnabled()) {
       setStatus({ state: isConfigured() ? 'on' : 'needs-config' });
       if (isConfigured() && navigator.onLine) {
-        syncNow().catch(() => {});
+        setTimeout(() => syncNow().catch(() => {}), 1500);
       }
     }
 
     window.addEventListener('online', () => {
-      if (isEnabled()) syncNow().catch(() => {});
+      if (isEnabled() && !window.RVApp?.isUserEditing?.()) syncNow().catch(() => {});
     });
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && isEnabled() && navigator.onLine) {
+      if (document.visibilityState === 'visible' && isEnabled() && navigator.onLine
+          && !window.RVApp?.isUserEditing?.()) {
         syncNow().catch(() => {});
       }
     });

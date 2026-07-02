@@ -331,6 +331,7 @@ function migrate(raw) {
   if (!raw.inventory || !Array.isArray(raw.inventory.categories)) raw.inventory = seedInventory();
   if (!raw.rig || !Array.isArray(raw.rig.fields)) raw.rig = seedRig();
   if (!Array.isArray(raw.planned)) raw.planned = [];
+  for (const p of raw.planned) { if (p && !p.updatedAt) p.updatedAt = 0; }
   if (raw.currentTrip && !raw.currentTrip.packed) raw.currentTrip.packed = {};
   if (!raw.history) raw.history = [];
   if (raw.currentTrip) {
@@ -350,16 +351,26 @@ function load() {
   return seedState();
 }
 function save(opts) {
-  bumpMeta();
+  if (!opts?.localOnly) bumpMeta();
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   catch (e) { toast('⚠️ Could not save — storage full?'); return; }
   if (!opts?.localOnly && window.RVSync) window.RVSync.schedulePush();
 }
 
+function isUserEditing() {
+  const el = document.activeElement;
+  return !!(el && viewEl().contains(el) && el.matches('input, textarea, select'));
+}
+
+function safeRender() {
+  if (isUserEditing()) return;
+  render();
+}
+
 function setState(next, opts) {
   state = migrate(next);
   save(opts);
-  render();
+  if (!opts?.silent) safeRender();
 }
 
 /* ---------- Derived helpers ---------- */
@@ -1067,7 +1078,7 @@ const ACTIONS = {
   'back-planned': () => go(prevTab),
   'add-planned': () => {
     const id = uid('pl_');
-    state.planned.push({ id, name: '', start: '', end: '', campsite: '', link: '', reservation: '', notes: '' });
+    state.planned.push({ id, name: '', start: '', end: '', campsite: '', link: '', reservation: '', notes: '', updatedAt: Date.now() });
     save(); go('planned', 'edit', id);
   },
   'edit-planned': (id) => go('planned', 'edit', id),
@@ -1149,7 +1160,10 @@ const CHANGE_ACTIONS = {
   },
   'rig-value': (id, value) => { const f = findRigField(id); if (f) { f.value = value.trim(); save(); } },
   'rig-label': (id, value) => { const f = findRigField(id); if (f) { f.label = value.trim() || f.label; save(); } },
-  'plan-field': (id, value, el) => { const p = findPlanned(id); if (p) { p[el.dataset.field] = value; save(); } },
+  'plan-field': (id, value, el) => {
+    const p = findPlanned(id);
+    if (p) { p[el.dataset.field] = value; p.updatedAt = Date.now(); save(); }
+  },
 };
 
 function moveItem(id, dir) {
@@ -1269,8 +1283,11 @@ window.RVApp = {
   setState,
   deviceId,
   render,
+  safeRender,
+  isUserEditing,
+  getView: () => view,
   toast,
-  onSyncStatus: () => { if (view.tab === 'data') render(); },
+  onSyncStatus: () => { if (view.tab === 'data') safeRender(); },
 };
 
 if (window.RVSync) window.RVSync.init();

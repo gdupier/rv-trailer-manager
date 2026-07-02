@@ -39,7 +39,8 @@ window.RVSyncMerge = (function () {
 
   function mergeArrayById(local, remote) {
     const map = new Map();
-    for (const item of [...(local || []), ...(remote || [])]) {
+    // Remote first, local second — on equal timestamps local wins (user's device).
+    for (const item of [...(remote || []), ...(local || [])]) {
       if (!item || !item.id) continue;
       const prev = map.get(item.id);
       if (!prev || itemTime(item) >= itemTime(prev)) map.set(item.id, item);
@@ -47,9 +48,13 @@ window.RVSyncMerge = (function () {
     return [...map.values()];
   }
 
-  function mergeCurrentTrip(a, b) {
-    if (!a) return b ? { ...b } : null;
-    if (!b) return { ...a };
+  function mergeCurrentTrip(a, b, localMeta, remoteMeta) {
+    if (!a && !b) return null;
+    if (!a && b) {
+      if ((localMeta?.updatedAt || 0) > (remoteMeta?.updatedAt || 0)) return null;
+      return { ...b };
+    }
+    if (a && !b) return { ...a };
     if (a.id !== b.id) {
       return (a.updatedAt || 0) >= (b.updatedAt || 0) ? { ...a } : { ...b };
     }
@@ -79,7 +84,7 @@ window.RVSyncMerge = (function () {
       checklists: useLocalTemplates ? l.checklists : r.checklists,
       inventory: useLocalTemplates ? l.inventory : r.inventory,
       rig: useLocalTemplates ? l.rig : r.rig,
-      currentTrip: mergeCurrentTrip(l.currentTrip, r.currentTrip),
+      currentTrip: mergeCurrentTrip(l.currentTrip, r.currentTrip, l.meta, r.meta),
       planned: mergeArrayById(l.planned, r.planned),
       history: mergeArrayById(l.history, r.history),
     };
